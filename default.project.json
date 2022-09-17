@@ -8,12 +8,6 @@
                 "HttpEnabled": true
             }
         },
-        "ServerStorage": {
-            "$className": "ServerStorage",
-            "VisibilityTools": {
-                "$path": "src"
-            }
-        },
         "PluginDebugService": {
             "$className": "PluginDebugService",
             "Visibility Tools Plugin": {

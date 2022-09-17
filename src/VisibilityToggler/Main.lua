@@ -1,3 +1,5 @@
+local Main = {}
+
 local ServerStorage = game:GetService("ServerStorage")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local CollectionService = game:GetService("CollectionService")
@@ -11,9 +13,9 @@ local CollisionGroupMgr = require(root.CollisionGroupManager)
 local Globals = require(root.Globals)
 
 --Helper functions
-local hasEnabledProperty = ObjectState.hasEnabledProperty
-local hasTransparencyProperty = ObjectState.hasTransparencyProperty
-local isContainerObject = ObjectState.isContainerObject
+-- local hasEnabledProperty = ObjectState.hasEnabledProperty
+-- local hasTransparencyProperty = ObjectState.hasTransparencyProperty
+-- local isContainerObject = ObjectState.isContainerObject
 local isValidObject = ObjectState.isValidObject
 local isHideableObject = ObjectState.isHideableObject
 local isHidden = ObjectState.isHidden
@@ -21,7 +23,7 @@ local isInvisible = ObjectState.isInvisible
 local parentIsNotHidden = ObjectState.parentIsNotHidden
 
 local connections
-local function cleanUp()
+function Main:cleanUp()
 	--check if there are any hidden parts. If not, do some cleanup.
 	if #CollectionService:GetTagged(Globals.HIDDEN) == 0 then
 		PhysicsService:RemoveCollisionGroup(Globals.HIDDEN)
@@ -40,35 +42,19 @@ local function cleanUp()
 	end
 end
 
-local function toggleVisibility(toggle, obj)
-	if not isHideableObject(obj) then
-		return
-	end
+function Main:toggleVisibility(toggle, obj)
 	if toggle == 1 then
-		if isInvisible(obj) then
-			return
+		if ObjectState.makeInvisible(obj) then
+			CollisionGroupMgr:AddToHiddenCollisionGroup(obj)
 		end
-		if hasTransparencyProperty(obj) then
-			ObjectState.makeTransparent(obj)
-		elseif hasEnabledProperty(obj) then
-			ObjectState.makeUnEnabled(obj)
-		end
-		CollisionGroupMgr:AddToHiddenCollisionGroup(obj)
 	elseif toggle == 0 then
-		if isInvisible(obj) == false then
-			return
+		if ObjectState.makeVisible(obj) then
+			CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
 		end
-		if hasTransparencyProperty(obj) then
-			ObjectState.makeUnTransparent(obj)
-		elseif hasEnabledProperty(obj) then
-			ObjectState.makeEnabled(obj)
-		end
-		CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
 	end
-	ObjectState.updateObjectName(obj)
 end
 
-local function getChildObjects(object)
+function Main:getChildObjects(object)
 	--Recursively check for all children, but only check children of certain types of objects.
 	local childObjs = {}
 	local function recursiveSearch(parent)
@@ -83,19 +69,19 @@ local function getChildObjects(object)
 	return childObjs
 end
 
-local function toggleVisibilityForChildObjects(toggle, toggledObject)
-	local childObjs = getChildObjects(toggledObject)
+function Main:toggleVisibilityForChildObjects(toggle, toggledObject)
+	local childObjs = self:getChildObjects(toggledObject)
 	--Toggle the transparency of an object, but make sure that it isn't a descendant of a hidden object.
 	--If it is, ignore it.
 	for _, obj in ipairs(childObjs) do
 		--if  then continue end
 		if isHidden(obj) == false and parentIsNotHidden(obj, toggledObject) then
-			toggleVisibility(toggle, obj)
+			self:toggleVisibility(toggle, obj)
 		end
 	end
 end
 
-local function showObject(obj)
+function Main:showObject(obj)
 	if not isHideableObject(obj) then
 		return
 	end
@@ -103,10 +89,13 @@ local function showObject(obj)
 		return
 	end
 
-	ObjectState.makeNotHidden(obj)
+	ObjectState.markAsNotHidden(obj)
 
-	CollectionService:RemoveTag(obj, Globals.HIDDEN)
-	CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
+	if parentIsNotHidden(obj) then
+		CollectionService:RemoveTag(obj, Globals.HIDDEN)
+		CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
+	end
+
 	if connections and connections[obj] then
 		if connections[obj].added then
 			connections[obj].added:Disconnect()
@@ -120,7 +109,7 @@ local function showObject(obj)
 	ObjectState.updateObjectName(obj)
 end
 
-local function listenForAncestryChange(descendant)
+function Main:listenForAncestryChange(descendant)
 	if isHidden(descendant) then
 		return
 	end
@@ -129,8 +118,8 @@ local function listenForAncestryChange(descendant)
 	end
 	connections[descendant].ancestryChanged = descendant.AncestryChanged:Connect(function(child, parent)
 		if parentIsNotHidden(child) then
-			toggleVisibility(0, child)
-			toggleVisibilityForChildObjects(0, child)
+			self:toggleVisibility(0, child)
+			self:toggleVisibilityForChildObjects(0, child)
 		end
 		if connections[child].ancestryChanged then
 			connections[child].ancestryChanged:Disconnect()
@@ -138,13 +127,13 @@ local function listenForAncestryChange(descendant)
 	end)
 end
 
-local function setupListeners(obj)
+function Main:setupListeners(obj)
 	--Listen for adding and removing descendants
 	connections[obj] = {}
 	connections[obj].added = obj.DescendantAdded:Connect(function(descendant)
 		--if an object is added to this hidden object,
 		--make sure it is invisible.
-		toggleVisibility(1, descendant)
+		self:toggleVisibility(1, descendant)
 	end)
 
 	connections[obj].removing = obj.DescendantRemoving:Connect(function(descendant)
@@ -158,26 +147,26 @@ local function setupListeners(obj)
 		--The first returned is always the object with the connection.
 		for _, selectedObject in ipairs(Selection:Get()) do
 			if selectedObject == descendant then
-				listenForAncestryChange(descendant)
+				self:listenForAncestryChange(descendant)
 			end
 		end
 	end)
 end
 
-local function hideObject(obj)
+function Main:hideObject(obj)
 	if not isHideableObject(obj) then
 		return
 	end
 
 	--The object might already be hidden, but setup listeners anyways.
 	--Do this in case you've reopened the file and the listeners were reset.
-	setupListeners(obj)
+	self:setupListeners(obj)
 
 	if isHidden(obj) then
 		return
 	end
 
-	ObjectState.makeHidden(obj)
+	ObjectState.markAsHidden(obj)
 
 	CollectionService:AddTag(obj, Globals.HIDDEN)
 	CollisionGroupMgr:AddToHiddenCollisionGroup(obj)
@@ -185,40 +174,40 @@ local function hideObject(obj)
 	ObjectState.updateObjectName(obj)
 end
 
-local function toggleHidden(toggle, objects)
-	local objectsToToggle = objects
+function Main:toggleHidden(toggle, objects)
 	for _, toggledObject in ipairs(objects) do
 		if toggle == 1 then
-			hideObject(toggledObject)
+			self:hideObject(toggledObject)
 		elseif toggle == 0 then
-			showObject(toggledObject)
+			self:showObject(toggledObject)
 		end
 
 		--Check to see if it is a descendant of a Hidden object.
 		if parentIsNotHidden(toggledObject) then
-			toggleVisibility(toggle, toggledObject)
+			self:toggleVisibility(toggle, toggledObject)
 		end
 
-		toggleVisibilityForChildObjects(toggle, toggledObject)
+		self:toggleVisibilityForChildObjects(toggle, toggledObject)
 	end
 
-	cleanUp()
+	self:cleanUp()
 end
 
-local function showAll()
+function Main:showAll()
 	ChangeHistoryService:SetWaypoint("Initiating Show All")
 
 	local hiddenObjects = CollectionService:GetTagged(Globals.HIDDEN)
 	for _, hiddenObject in ipairs(hiddenObjects) do
-		showObject(hiddenObject)
-		toggleVisibility(0, hiddenObject)
-		toggleVisibilityForChildObjects(0, hiddenObject)
+		CollectionService:RemoveTag(hiddenObject, Globals.HIDDEN)
+		self:showObject(hiddenObject)
+		self:toggleVisibility(0, hiddenObject)
+		self:toggleVisibilityForChildObjects(0, hiddenObject)
 	end
-	cleanUp()
+	self:cleanUp()
 	ChangeHistoryService:SetWaypoint("Show All")
 end
 
-local function hideActionTriggered()
+function Main:hideActionTriggered()
 	if not game:GetService("RunService"):IsEdit() then
 		return
 	end
@@ -238,16 +227,16 @@ local function hideActionTriggered()
 	end
 	if selectedObjectIsNotHidden then
 		ChangeHistoryService:SetWaypoint("Initiating Hide")
-		toggleHidden(1, objectsToToggle)
+		self:toggleHidden(1, objectsToToggle)
 		ChangeHistoryService:SetWaypoint("Hide Object")
 	else
 		ChangeHistoryService:SetWaypoint("Initiating Show")
-		toggleHidden(0, objectsToToggle)
+		self:toggleHidden(0, objectsToToggle)
 		ChangeHistoryService:SetWaypoint("Show Object")
 	end
 end
 
-local function init()
+function Main:init()
 	if RunService:IsRunning() and RunService:IsClient() then
 		return
 	end
@@ -260,58 +249,29 @@ local function init()
 	local tagged = CollectionService:GetTagged(Globals.HIDDEN)
 	if #tagged > 0 then
 		--there are things still tagged as hidden, so make sure they are hidden.
-		toggleHidden(1, tagged)
+		self:toggleHidden(1, tagged)
 	end
-	cleanUp()
+	self:cleanUp()
 end
 
-local hidePluginAction = plugin:CreatePluginAction(
-	"VisibilityTools_HideAction",
-	"Hide",
-	"Hides an object and makes it unclickable.",
-	"rbxassetid://10928835654",
-	true
-)
--- hidePluginAction.Triggered:Connect(VisibilityToggler:hideActionTriggered())
-hidePluginAction.Triggered:Connect(hideActionTriggered)
+-- local hidePluginAction = plugin:CreatePluginAction(
+-- 	"VisibilityTools_HideAction",
+-- 	"Hide",
+-- 	"Hides an object and makes it unclickable.",
+-- 	"rbxassetid://10928835654",
+-- 	true
+-- )
+-- -- hidePluginAction.Triggered:Connect(VisibilityToggler:hideActionTriggered())
+-- hidePluginAction.Triggered:Connect(hideActionTriggered)
 
-local showAllPluginAction = plugin:CreatePluginAction(
-	"VisibilityTools_ShowAllAction",
-	"Show All",
-	"Show all objects hidden by Visibility Tools",
-	"rbxassetid://10928835654",
-	true
-)
--- showAllPluginAction.Triggered:Connect(VisibilityToggler:showAll())
-showAllPluginAction.Triggered:Connect(showAll)
+-- local showAllPluginAction = plugin:CreatePluginAction(
+-- 	"VisibilityTools_ShowAllAction",
+-- 	"Show All",
+-- 	"Show all objects hidden by Visibility Tools",
+-- 	"rbxassetid://10928835654",
+-- 	true
+-- )
+-- -- showAllPluginAction.Triggered:Connect(VisibilityToggler:showAll())
+-- showAllPluginAction.Triggered:Connect(showAll)
 
--- local isRunning = false
--- local isClosed = true
--- game.Close:Connect(function()
--- 	if not RunService:IsStudio() then
--- 		return
--- 	end
--- 	if isClosed then
--- 		return
--- 	end
-
--- 	print("Closing!")
--- 	isRunning = false
--- 	isClosed = true
--- end)
-
--- game.ChildAdded:Connect(function()
--- 	if RunService:IsClient() then
--- 		return
--- 	end
--- 	if RunService:IsRunning() and not isRunning then
--- 		print("Game is running!")
--- 		isRunning = true
--- 		isClosed = false
--- 		showAll()
--- 	end
--- end)
--- plugin.Unloading:Connect(function()
--- 	print("Plugin unloading!")
--- end)
-init()
+return Main

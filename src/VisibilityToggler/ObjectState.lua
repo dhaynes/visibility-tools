@@ -24,7 +24,7 @@ function ObjectState.hasTransparencyProperty(obj)
 end
 
 function ObjectState.isValidObject(obj)
-	local state, errorMessage = pcall(function()
+	local state, _ = pcall(function()
 		return obj:IsDescendantOf(game.Workspace)
 	end)
 	if state == false or obj == game.Workspace or obj:IsA("Terrain") then
@@ -38,7 +38,6 @@ function ObjectState.isHideableObject(obj)
 	if not ObjectState.isValidObject(obj) then
 		return false
 	end
-
 	return ObjectState.hasTransparencyProperty(obj)
 		or ObjectState.hasEnabledProperty(obj)
 		or ObjectState.isContainerObject(obj)
@@ -66,18 +65,29 @@ function ObjectState.parentIsNotHidden(obj, ignore)
 	end
 end
 
-----------------
--- State management --
-----------------
+----------------------------------------------------------------
+-- Attribute management --
+----------------------------------------------------------------
 
-function ObjectState.makeHidden(obj)
+function ObjectState.markAsHidden(obj)
 	--mark the HIDDEN attribute and the name of the obj
 	obj:SetAttribute(Globals.HIDDEN, 1)
 end
 
-function ObjectState.makeNotHidden(obj)
+function ObjectState.markAsNotHidden(obj)
 	obj:SetAttribute(Globals.HIDDEN, nil)
 end
+
+function ObjectState.markAsVisible(obj)
+	obj:SetAttribute(Globals.INVISIBLE, nil)
+end
+
+function ObjectState.markAsInvisible(obj)
+	obj:SetAttribute(Globals.INVISIBLE, 1)
+end
+------------------------------------------------
+-- State management --
+------------------------------------------------
 
 function ObjectState.makeTransparent(obj)
 	--Save the current transparency in an attribute.
@@ -114,12 +124,38 @@ function ObjectState.makeEnabled(obj)
 	ObjectState.markAsVisible(obj)
 end
 
-function ObjectState.markAsVisible(obj)
-	obj:SetAttribute(Globals.INVISIBLE, nil)
+function ObjectState.makeInvisible(obj)
+	if ObjectState.isInvisible(obj) then
+		return false
+	end
+	if ObjectState.hasTransparencyProperty(obj) then
+		ObjectState.makeTransparent(obj)
+	elseif ObjectState.hasEnabledProperty(obj) then
+		ObjectState.makeUnEnabled(obj)
+	elseif ObjectState.isContainerObject(obj) then
+		ObjectState.markAsInvisible(obj)
+	end
+
+	ObjectState.updateObjectName(obj)
+
+	return true
 end
 
-function ObjectState.markAsInvisible(obj)
-	obj:SetAttribute(Globals.INVISIBLE, 1)
+function ObjectState.makeVisible(obj)
+	if ObjectState.isInvisible(obj) == false then
+		return false
+	end
+	if ObjectState.hasTransparencyProperty(obj) then
+		ObjectState.makeUnTransparent(obj)
+	elseif ObjectState.hasEnabledProperty(obj) then
+		ObjectState.makeEnabled(obj)
+	elseif ObjectState.isContainerObject(obj) then
+		ObjectState.markAsVisible(obj)
+	end
+
+	ObjectState.updateObjectName(obj)
+
+	return true
 end
 
 function ObjectState.updateObjectName(obj)

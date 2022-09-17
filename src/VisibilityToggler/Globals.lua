@@ -1,7 +1,7 @@
 return {
-	COLLISION_GROUP = "VisibilityTools_CollisionGroup",
-	HIDDEN = "VisibilityTools_Hidden",
-	INVISIBLE = "VisibilityTools_Invisible",
-	ENABLED = "VisibilityTools_Enabled",
-	TRANSPARENCY = "VisibilityTools_Transparency",
+	COLLISION_GROUP = "VT_CachedCollisionGroup",
+	HIDDEN = "VT_Hidden",
+	INVISIBLE = "VT_IsInvisible",
+	ENABLED = "VT_Enabled",
+	TRANSPARENCY = "VT_CachedTransparency",
 }
