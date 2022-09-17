@@ -3,10 +3,11 @@ local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local CollectionService = game:GetService("CollectionService")
 local Selection = game:GetService("Selection")
 local PhysicsService = game:GetService("PhysicsService")
+local RunService = game:GetService("RunService")
 
 local root = script.Parent
 local ObjectState = require(root.ObjectState)
-local CollisionGroupMgr = require(root.CollisionGroupMgr)
+local CollisionGroupMgr = require(root.CollisionGroupManager)
 local Globals = require(root.Globals)
 
 --Helper functions
@@ -18,12 +19,6 @@ local isHideableObject = ObjectState.isHideableObject
 local isHidden = ObjectState.isHidden
 local isInvisible = ObjectState.isInvisible
 local parentIsNotHidden = ObjectState.parentIsNotHidden
-
---local COLLISION_GROUP = "VisibilityTools_CollisionGroup"
---local HIDDEN = "VisibilityTools_Hidden"
---local INVISIBLE = "VisibilityTools_Invisible"
---local ENABLED = "VisibilityTools_Enabled"
---local TRANSPARENCY = "VisibilityTools_Transparency"
 
 local connections
 local function cleanUp()
@@ -112,7 +107,7 @@ local function showObject(obj)
 
 	CollectionService:RemoveTag(obj, Globals.HIDDEN)
 	CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
-	if connections[obj] then
+	if connections and connections[obj] then
 		if connections[obj].added then
 			connections[obj].added:Disconnect()
 		end
@@ -211,9 +206,6 @@ local function toggleHidden(toggle, objects)
 end
 
 local function showAll()
-	if not game:GetService("RunService"):IsEdit() then
-		return
-	end
 	ChangeHistoryService:SetWaypoint("Initiating Show All")
 
 	local hiddenObjects = CollectionService:GetTagged(Globals.HIDDEN)
@@ -256,6 +248,12 @@ local function hideActionTriggered()
 end
 
 local function init()
+	if RunService:IsRunning() and RunService:IsClient() then
+		return
+	end
+
+	print("Initializing plugin...")
+
 	if not connections then
 		connections = {}
 	end
@@ -271,20 +269,49 @@ local hidePluginAction = plugin:CreatePluginAction(
 	"VisibilityTools_HideAction",
 	"Hide",
 	"Hides an object and makes it unclickable.",
-	"rbxassetid://9614014815",
+	"rbxassetid://10928835654",
 	true
 )
+-- hidePluginAction.Triggered:Connect(VisibilityToggler:hideActionTriggered())
 hidePluginAction.Triggered:Connect(hideActionTriggered)
 
 local showAllPluginAction = plugin:CreatePluginAction(
 	"VisibilityTools_ShowAllAction",
 	"Show All",
 	"Show all objects hidden by Visibility Tools",
-	"rbxassetid://9614014815",
+	"rbxassetid://10928835654",
 	true
 )
+-- showAllPluginAction.Triggered:Connect(VisibilityToggler:showAll())
 showAllPluginAction.Triggered:Connect(showAll)
 
-if game:GetService("RunService"):IsEdit() then
-	init()
-end
+-- local isRunning = false
+-- local isClosed = true
+-- game.Close:Connect(function()
+-- 	if not RunService:IsStudio() then
+-- 		return
+-- 	end
+-- 	if isClosed then
+-- 		return
+-- 	end
+
+-- 	print("Closing!")
+-- 	isRunning = false
+-- 	isClosed = true
+-- end)
+
+-- game.ChildAdded:Connect(function()
+-- 	if RunService:IsClient() then
+-- 		return
+-- 	end
+-- 	if RunService:IsRunning() and not isRunning then
+-- 		print("Game is running!")
+-- 		isRunning = true
+-- 		isClosed = false
+-- 		showAll()
+-- 	end
+-- end)
+-- plugin.Unloading:Connect(function()
+-- 	print("Plugin unloading!")
+-- end)
+init()
