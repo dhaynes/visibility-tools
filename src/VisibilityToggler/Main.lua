@@ -18,6 +18,7 @@ local Globals = require(root.Globals)
 local isValidObject = ObjectState.isValidObject
 local isHideableObject = ObjectState.isHideableObject
 local isHidden = ObjectState.isHidden
+local isInvisible = ObjectState.isInvisible
 
 local DebugLogger = require(pluginRoot.DebugLogger)
 
@@ -145,6 +146,7 @@ function Main:setupListeners(obj)
 	self.connections[obj].added = obj.DescendantAdded:Connect(function(descendant)
 		--if an object is added to this hidden object,
 		--make sure it is invisible.
+		print("Descendant added: " .. tostring(descendant))
 		self:toggleVisibility(1, descendant)
 	end)
 
@@ -253,7 +255,7 @@ function Main:init()
 		return
 	end
 
-	DebugLogger:log("Initializing plugin...")
+	DebugLogger:log("Initializing VisibilityTools plugin")
 
 	if not self.connections then
 		self.connections = {}
@@ -263,6 +265,19 @@ function Main:init()
 		--there are things still tagged as hidden, so make sure they are hidden.
 		self:toggleHidden(1, tagged)
 	end
+
+	--Add a listener to workspace to look for children that are added.
+	--Used to handle copy/pasting hidden objects
+	game.Workspace.DescendantAdded:Connect(function(descendant)
+		DebugLogger:log("Adding listener to Workspace")
+		if isInvisible(descendant) and not isHidden(descendant) then
+			if self:parentIsNotHidden(descendant) then
+				self:toggleVisibility(0, descendant)
+			end
+		end
+		self:cleanUp()
+	end)
+
 	self:cleanUp()
 end
 
