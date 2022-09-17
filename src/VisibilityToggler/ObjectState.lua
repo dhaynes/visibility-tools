@@ -58,18 +58,22 @@ end
 
 function ObjectState.markAsHidden(obj)
 	obj:SetAttribute(Globals.HIDDEN, 1)
+	ObjectState.updateObjectName(obj)
 end
 
 function ObjectState.markAsNotHidden(obj)
 	obj:SetAttribute(Globals.HIDDEN, nil)
+	ObjectState.updateObjectName(obj)
 end
 
 function ObjectState.markAsVisible(obj)
 	obj:SetAttribute(Globals.INVISIBLE, nil)
+	ObjectState.updateObjectName(obj)
 end
 
 function ObjectState.markAsInvisible(obj)
 	obj:SetAttribute(Globals.INVISIBLE, 1)
+	ObjectState.updateObjectName(obj)
 end
 
 ------------------------------------------------

@@ -118,8 +118,6 @@ function Main:showObject(obj)
 		end
 		table.clear(self.connections[obj])
 	end
-
-	ObjectState.updateObjectName(obj)
 end
 
 function Main:listenForAncestryChange(descendant)
@@ -184,8 +182,6 @@ function Main:hideObject(obj)
 
 	CollectionService:AddTag(obj, Globals.HIDDEN)
 	CollisionGroupMgr:AddToHiddenCollisionGroup(obj)
-
-	ObjectState.updateObjectName(obj)
 end
 
 function Main:toggleHidden(toggle, objects)
