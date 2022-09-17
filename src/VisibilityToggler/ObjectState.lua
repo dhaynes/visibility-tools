@@ -77,23 +77,19 @@ end
 ------------------------------------------------
 function ObjectState.makeTransparent(obj)
 	--Save the current transparency in an attribute.
-	-- obj:SetAttribute(Globals.TRANSPARENCY, obj.Transparency)
-	-- obj.Transparency = 1
+	obj:SetAttribute(Globals.TRANSPARENCY, obj.Transparency)
+	obj.Transparency = 1
 
-	--Using LocalTransparencyModifier is cleaner than using Transparency.
-	obj.LocalTransparencyModifier = 1
 	ObjectState.markAsInvisible(obj)
 end
 
 function ObjectState.makeUnTransparent(obj)
 	--Restore saved Transparency.
-	-- if obj:GetAttribute(Globals.TRANSPARENCY) then
-	-- 	obj.Transparency = obj:GetAttribute(Globals.TRANSPARENCY)
-	-- 	obj:SetAttribute(Globals.TRANSPARENCY, nil)
-	-- end
+	if obj:GetAttribute(Globals.TRANSPARENCY) then
+		obj.Transparency = obj:GetAttribute(Globals.TRANSPARENCY)
+		obj:SetAttribute(Globals.TRANSPARENCY, nil)
+	end
 
-	--Using LocalTransparencyModifier is cleaner than using Transparency.
-	obj.LocalTransparencyModifier = 0
 	ObjectState.markAsVisible(obj)
 end
 
@@ -151,13 +147,13 @@ function ObjectState.makeVisible(obj)
 end
 
 function ObjectState.updateObjectName(obj)
-	obj.Name = string.gsub(obj.Name, "*", "")
+	obj.Name = string.gsub(obj.Name, Globals.INVISIBLE_NAME_TAG, "")
 	obj.Name = string.gsub(obj.Name, Globals.HIDDEN_NAME_SUB, "")
 	if ObjectState.isHidden(obj) then
-		obj.Name = Globals.HIDDEN_NAME .. obj.Name -- Hidden
+		obj.Name = Globals.HIDDEN_NAME_TAG .. obj.Name -- Hidden
 	end
 	if ObjectState.isInvisible(obj) then
-		obj.Name = "*" .. obj.Name -- Invisible
+		obj.Name = Globals.INVISIBLE_NAME_TAG .. obj.Name -- Invisible
 	end
 end
 

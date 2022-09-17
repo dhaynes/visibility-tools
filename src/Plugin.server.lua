@@ -1,5 +1,7 @@
 local RunService = game:GetService("RunService")
 
+local DebugLogger = require(script.Parent.DebugLogger)
+
 local plugin = plugin or getfenv().PluginManager():CreatePlugin()
 plugin.Name = "Visibility Tools Plugin"
 
@@ -38,7 +40,7 @@ game.Close:Connect(function()
 		return
 	end
 
-	print("Game is closing!")
+	DebugLogger:log("Game is closing!")
 	isRunning = false
 	isClosed = true
 end)
@@ -48,12 +50,12 @@ game.ChildAdded:Connect(function()
 		return
 	end
 	if RunService:IsRunning() and not isRunning then
-		print("Game is running!")
+		DebugLogger:log("Game is running!")
 		isRunning = true
 		isClosed = false
 		VisibilityToggler:showAll()
 	end
 end)
 plugin.Unloading:Connect(function()
-	print("Plugin unloading!")
+	DebugLogger:log("Plugin unloading!")
 end)

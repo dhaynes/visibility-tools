@@ -1,4 +1,6 @@
-local Main = {}
+local Main = {
+	connections = nil,
+}
 
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local CollectionService = game:GetService("CollectionService")
@@ -6,6 +8,7 @@ local Selection = game:GetService("Selection")
 local PhysicsService = game:GetService("PhysicsService")
 local RunService = game:GetService("RunService")
 
+local pluginRoot = script.Parent.Parent
 local root = script.Parent
 local ObjectState = require(root.ObjectState)
 local CollisionGroupMgr = require(root.CollisionGroupManager)
@@ -16,12 +19,13 @@ local isValidObject = ObjectState.isValidObject
 local isHideableObject = ObjectState.isHideableObject
 local isHidden = ObjectState.isHidden
 
-local connections
+local DebugLogger = require(pluginRoot.DebugLogger)
+
 function Main:cleanUp()
 	--check if there are any hidden parts. If not, do some cleanup.
 	if #CollectionService:GetTagged(Globals.HIDDEN) == 0 then
 		PhysicsService:RemoveCollisionGroup(Globals.HIDDEN)
-		for _, v in ipairs(connections) do
+		for _, v in ipairs(self.connections) do
 			if v.added then
 				v.added:Disconnect()
 			end
@@ -32,7 +36,7 @@ function Main:cleanUp()
 				v.ancestryChanged:Disconnect()
 			end
 		end
-		table.clear(connections)
+		table.clear(self.connections)
 	end
 end
 
@@ -104,14 +108,14 @@ function Main:showObject(obj)
 		CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
 	end
 
-	if connections and connections[obj] then
-		if connections[obj].added then
-			connections[obj].added:Disconnect()
+	if self.connections and self.connections[obj] then
+		if self.connections[obj].added then
+			self.connections[obj].added:Disconnect()
 		end
-		if connections[obj].removing then
-			connections[obj].removing:Disconnect()
+		if self.connections[obj].removing then
+			self.connections[obj].removing:Disconnect()
 		end
-		table.clear(connections[obj])
+		table.clear(self.connections[obj])
 	end
 
 	ObjectState.updateObjectName(obj)
@@ -121,30 +125,30 @@ function Main:listenForAncestryChange(descendant)
 	if isHidden(descendant) then
 		return
 	end
-	if not connections[descendant] then
-		connections[descendant] = {}
+	if not self.connections[descendant] then
+		self.connections[descendant] = {}
 	end
-	connections[descendant].ancestryChanged = descendant.AncestryChanged:Connect(function(child, parent)
+	self.connections[descendant].ancestryChanged = descendant.AncestryChanged:Connect(function(child, parent)
 		if self:parentIsNotHidden(child) then
 			self:toggleVisibility(0, child)
 			self:toggleVisibilityForChildObjects(0, child)
 		end
-		if connections[child].ancestryChanged then
-			connections[child].ancestryChanged:Disconnect()
+		if self.connections[child].ancestryChanged then
+			self.connections[child].ancestryChanged:Disconnect()
 		end
 	end)
 end
 
 function Main:setupListeners(obj)
 	--Listen for adding and removing descendants
-	connections[obj] = {}
-	connections[obj].added = obj.DescendantAdded:Connect(function(descendant)
+	self.connections[obj] = {}
+	self.connections[obj].added = obj.DescendantAdded:Connect(function(descendant)
 		--if an object is added to this hidden object,
 		--make sure it is invisible.
 		self:toggleVisibility(1, descendant)
 	end)
 
-	connections[obj].removing = obj.DescendantRemoving:Connect(function(descendant)
+	self.connections[obj].removing = obj.DescendantRemoving:Connect(function(descendant)
 		--if an object is REMOVED as a descendant,
 		--then make sure it knows whether or not it should
 		--be visible or not.
@@ -249,10 +253,10 @@ function Main:init()
 		return
 	end
 
-	print("Initializing plugin...")
+	DebugLogger:log("Initializing plugin...")
 
-	if not connections then
-		connections = {}
+	if not self.connections then
+		self.connections = {}
 	end
 	local tagged = CollectionService:GetTagged(Globals.HIDDEN)
 	if #tagged > 0 then
@@ -261,25 +265,5 @@ function Main:init()
 	end
 	self:cleanUp()
 end
-
--- local hidePluginAction = plugin:CreatePluginAction(
--- 	"VisibilityTools_HideAction",
--- 	"Hide",
--- 	"Hides an object and makes it unclickable.",
--- 	"rbxassetid://10928835654",
--- 	true
--- )
--- -- hidePluginAction.Triggered:Connect(VisibilityToggler:hideActionTriggered())
--- hidePluginAction.Triggered:Connect(hideActionTriggered)
-
--- local showAllPluginAction = plugin:CreatePluginAction(
--- 	"VisibilityTools_ShowAllAction",
--- 	"Show All",
--- 	"Show all objects hidden by Visibility Tools",
--- 	"rbxassetid://10928835654",
--- 	true
--- )
--- -- showAllPluginAction.Triggered:Connect(VisibilityToggler:showAll())
--- showAllPluginAction.Triggered:Connect(showAll)
 
 return Main
