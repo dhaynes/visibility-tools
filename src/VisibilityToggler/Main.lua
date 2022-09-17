@@ -1,6 +1,5 @@
 local Main = {}
 
-local ServerStorage = game:GetService("ServerStorage")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local CollectionService = game:GetService("CollectionService")
 local Selection = game:GetService("Selection")
@@ -13,14 +12,9 @@ local CollisionGroupMgr = require(root.CollisionGroupManager)
 local Globals = require(root.Globals)
 
 --Helper functions
--- local hasEnabledProperty = ObjectState.hasEnabledProperty
--- local hasTransparencyProperty = ObjectState.hasTransparencyProperty
--- local isContainerObject = ObjectState.isContainerObject
 local isValidObject = ObjectState.isValidObject
 local isHideableObject = ObjectState.isHideableObject
 local isHidden = ObjectState.isHidden
-local isInvisible = ObjectState.isInvisible
-local parentIsNotHidden = ObjectState.parentIsNotHidden
 
 local connections
 function Main:cleanUp()
@@ -54,6 +48,20 @@ function Main:toggleVisibility(toggle, obj)
 	end
 end
 
+function Main:parentIsNotHidden(obj, ignore)
+	--walk upwards in the hierarchy to check for a parent that is hidden.
+	local parent = obj.Parent
+	while true do
+		if parent ~= ignore and ObjectState.isHidden(parent) then
+			return false
+		elseif parent == game.Workspace then
+			return true
+		else
+			parent = parent.Parent
+		end
+	end
+end
+
 function Main:getChildObjects(object)
 	--Recursively check for all children, but only check children of certain types of objects.
 	local childObjs = {}
@@ -75,7 +83,7 @@ function Main:toggleVisibilityForChildObjects(toggle, toggledObject)
 	--If it is, ignore it.
 	for _, obj in ipairs(childObjs) do
 		--if  then continue end
-		if isHidden(obj) == false and parentIsNotHidden(obj, toggledObject) then
+		if isHidden(obj) == false and self:parentIsNotHidden(obj, toggledObject) then
 			self:toggleVisibility(toggle, obj)
 		end
 	end
@@ -91,7 +99,7 @@ function Main:showObject(obj)
 
 	ObjectState.markAsNotHidden(obj)
 
-	if parentIsNotHidden(obj) then
+	if self:parentIsNotHidden(obj) then
 		CollectionService:RemoveTag(obj, Globals.HIDDEN)
 		CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
 	end
@@ -117,7 +125,7 @@ function Main:listenForAncestryChange(descendant)
 		connections[descendant] = {}
 	end
 	connections[descendant].ancestryChanged = descendant.AncestryChanged:Connect(function(child, parent)
-		if parentIsNotHidden(child) then
+		if self:parentIsNotHidden(child) then
 			self:toggleVisibility(0, child)
 			self:toggleVisibilityForChildObjects(0, child)
 		end
@@ -183,7 +191,7 @@ function Main:toggleHidden(toggle, objects)
 		end
 
 		--Check to see if it is a descendant of a Hidden object.
-		if parentIsNotHidden(toggledObject) then
+		if self:parentIsNotHidden(toggledObject) then
 			self:toggleVisibility(toggle, toggledObject)
 		end
 

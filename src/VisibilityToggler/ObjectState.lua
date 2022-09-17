@@ -51,20 +51,6 @@ function ObjectState.isHidden(obj)
 	return obj:GetAttribute(Globals.HIDDEN) == 1
 end
 
-function ObjectState.parentIsNotHidden(obj, ignore)
-	--walk upwards in the hierarchy to check for a parent that is hidden.
-	local parent = obj.Parent
-	while true do
-		if parent ~= ignore and ObjectState.isHidden(parent) then
-			return false
-		elseif parent == game.Workspace then
-			return true
-		else
-			parent = parent.Parent
-		end
-	end
-end
-
 ----------------------------------------------------------------
 -- Attribute management --
 ----------------------------------------------------------------
@@ -85,6 +71,7 @@ end
 function ObjectState.markAsInvisible(obj)
 	obj:SetAttribute(Globals.INVISIBLE, 1)
 end
+
 ------------------------------------------------
 -- State management --
 ------------------------------------------------
@@ -92,9 +79,9 @@ end
 function ObjectState.makeTransparent(obj)
 	--Save the current transparency in an attribute.
 	obj:SetAttribute(Globals.TRANSPARENCY, obj.Transparency)
-	obj.Transparency = 1
+	-- obj.Transparency = 1
+	obj.LocalTransparencyModifier = 1
 	ObjectState.markAsInvisible(obj)
-	--obj.LocalTransparencyModifier = 1
 end
 
 function ObjectState.makeUnTransparent(obj)
