@@ -43,6 +43,11 @@ function ObjectState.isHideableObject(obj)
 		or ObjectState.isContainerObject(obj)
 end
 
+----------------------------------------------------------------
+-- Attribute management --
+----------------------------------------------------------------
+--We mark objects with attribute tags so that we know what state they're in.
+--State of "Hidden" objects is also tracked in Main.lua via CollectionService tags.
 function ObjectState.isInvisible(obj)
 	return obj:GetAttribute(Globals.INVISIBLE) == 1
 end
@@ -51,12 +56,7 @@ function ObjectState.isHidden(obj)
 	return obj:GetAttribute(Globals.HIDDEN) == 1
 end
 
-----------------------------------------------------------------
--- Attribute management --
-----------------------------------------------------------------
-
 function ObjectState.markAsHidden(obj)
-	--mark the HIDDEN attribute and the name of the obj
 	obj:SetAttribute(Globals.HIDDEN, 1)
 end
 
@@ -75,23 +75,26 @@ end
 ------------------------------------------------
 -- State management --
 ------------------------------------------------
-
 function ObjectState.makeTransparent(obj)
 	--Save the current transparency in an attribute.
-	obj:SetAttribute(Globals.TRANSPARENCY, obj.Transparency)
+	-- obj:SetAttribute(Globals.TRANSPARENCY, obj.Transparency)
 	-- obj.Transparency = 1
+
+	--Using LocalTransparencyModifier is cleaner than using Transparency.
 	obj.LocalTransparencyModifier = 1
 	ObjectState.markAsInvisible(obj)
 end
 
 function ObjectState.makeUnTransparent(obj)
 	--Restore saved Transparency.
-	if obj:GetAttribute(Globals.TRANSPARENCY) then
-		obj.Transparency = obj:GetAttribute(Globals.TRANSPARENCY)
-		obj:SetAttribute(Globals.TRANSPARENCY, nil)
-	end
+	-- if obj:GetAttribute(Globals.TRANSPARENCY) then
+	-- 	obj.Transparency = obj:GetAttribute(Globals.TRANSPARENCY)
+	-- 	obj:SetAttribute(Globals.TRANSPARENCY, nil)
+	-- end
+
+	--Using LocalTransparencyModifier is cleaner than using Transparency.
+	obj.LocalTransparencyModifier = 0
 	ObjectState.markAsVisible(obj)
-	--obj.LocalTransparencyModifier = 0
 end
 
 function ObjectState.makeUnEnabled(obj)
@@ -112,6 +115,8 @@ function ObjectState.makeEnabled(obj)
 end
 
 function ObjectState.makeInvisible(obj)
+	--"Invisible" is a catch-all that refers either to Transparency, Enabled/Disabled,
+	--or, if it's a container object, marking the object as Invisible so that child objects can be updated accordingly.
 	if ObjectState.isInvisible(obj) then
 		return false
 	end
@@ -147,9 +152,9 @@ end
 
 function ObjectState.updateObjectName(obj)
 	obj.Name = string.gsub(obj.Name, "*", "")
-	obj.Name = string.gsub(obj.Name, "%[HIDDEN%]% ", "")
+	obj.Name = string.gsub(obj.Name, Globals.HIDDEN_NAME_SUB, "")
 	if ObjectState.isHidden(obj) then
-		obj.Name = "[HIDDEN] " .. obj.Name -- Hidden
+		obj.Name = Globals.HIDDEN_NAME .. obj.Name -- Hidden
 	end
 	if ObjectState.isInvisible(obj) then
 		obj.Name = "*" .. obj.Name -- Invisible
