@@ -1,5 +1,6 @@
 local Main = {
 	connections = nil,
+	workspaceConnection = nil,
 }
 
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
@@ -144,7 +145,7 @@ function Main:setupListeners(obj)
 	self.connections[obj].added = obj.DescendantAdded:Connect(function(descendant)
 		--if an object is added to this hidden object,
 		--make sure it is invisible.
-		print("Descendant added: " .. tostring(descendant))
+		DebugLogger:log("Descendant added to " .. obj.Name .. ": " .. descendant.Name)
 		self:toggleVisibility(1, descendant)
 	end)
 
@@ -263,16 +264,27 @@ function Main:init()
 	end
 
 	--Add a listener to workspace to look for children that are added.
-	--Used to handle copy/pasting hidden objects
-	game.Workspace.DescendantAdded:Connect(function(descendant)
-		DebugLogger:log("Adding listener to Workspace")
-		if isInvisible(descendant) and not isHidden(descendant) then
-			if self:parentIsNotHidden(descendant) then
-				self:toggleVisibility(0, descendant)
+	--Used to handle copy/pasting hidden objects from other placefiles.
+	if not self.workspaceConnection then
+		self.workspaceConnection = game.Workspace.DescendantAdded:Connect(function(descendant)
+			if RunService:IsRunning() then
+				return
 			end
-		end
-		self:cleanUp()
-	end)
+
+			DebugLogger:log("Child added to Workspace")
+			--if it's hidden and pasted into the workspace, it might not have any listeners attached to it.
+			--so hide it again to reinitialize listeners.
+			if isHidden(descendant) then
+				self:hideObject(descendant)
+			end
+			if isInvisible(descendant) and not isHidden(descendant) then
+				if self:parentIsNotHidden(descendant) then
+					self:toggleVisibility(0, descendant)
+				end
+			end
+			self:cleanUp()
+		end)
+	end
 
 	self:cleanUp()
 end
