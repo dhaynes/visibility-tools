@@ -26,7 +26,7 @@ local DebugLogger = require(pluginRoot.DebugLogger)
 function Main:cleanUp()
 	--check if there are any hidden parts. If not, do some cleanup.
 	if #CollectionService:GetTagged(Globals.HIDDEN) == 0 then
-		PhysicsService:RemoveCollisionGroup(Globals.HIDDEN)
+		CollisionGroupMgr:RemoveHiddenCollisionGroup()
 		for _, v in ipairs(self.connections) do
 			if v.added then
 				v.added:Disconnect()
@@ -63,6 +63,7 @@ function Main:parentIsNotHidden(obj, ignore)
 		elseif parent == game.Workspace then
 			return true
 		else
+			--TODO: Make sure that we check if this object is a child of the workspace. You shouldn't be able to hide anything outside of workspace
 			parent = parent.Parent
 		end
 	end
@@ -237,6 +238,9 @@ function Main:hideActionTriggered()
 		table.insert(objectsToToggle, selectedObject)
 	end
 	if selectedObjectIsNotHidden then
+		if CollisionGroupMgr:MaxCollisionGroupsReached() then
+			return
+		end
 		ChangeHistoryService:SetWaypoint("Initiating Hide")
 		self:toggleHidden(1, objectsToToggle)
 		ChangeHistoryService:SetWaypoint("Hide Object")

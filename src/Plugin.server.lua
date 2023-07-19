@@ -1,4 +1,5 @@
 local RunService = game:GetService("RunService")
+local PhysicsService = game:GetService("PhysicsService")
 
 local DebugLogger = require(script.Parent.DebugLogger)
 

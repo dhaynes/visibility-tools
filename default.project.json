@@ -16,6 +16,15 @@
                     "$path": "src"
                 }
             }
+        },
+        "ServerScriptService": {
+            "$className": "ServerScriptService",
+            "Visibility Tools Plugin": {
+                "$className": "Folder",
+                "VisibilityTools": {
+                    "$path": "src"
+                }
+            }
         }
     }
 }
