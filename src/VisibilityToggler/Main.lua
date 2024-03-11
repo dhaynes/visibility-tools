@@ -136,11 +136,11 @@ function Main:listenForAncestryChange(descendant)
 		self.connections[descendant] = {}
 	end
 	self.connections[descendant].ancestryChanged = descendant.AncestryChanged:Connect(function(child, parent)
-		if self:parentIsNotHidden(child) then
+		if not isHidden(child) and self:parentIsNotHidden(child) then
 			self:toggleVisibility(0, child)
 			self:toggleVisibilityForChildObjects(0, child)
 		end
-		if self.connections[child].ancestryChanged then
+		if self.connections[child] and self.connections[child].ancestryChanged then
 			self.connections[child].ancestryChanged:Disconnect()
 		end
 	end)
@@ -162,6 +162,9 @@ function Main:setupListeners(obj)
 		--be visible or not.
 		if isHidden(descendant) == true then
 			return
+		end
+		if isInvisible(descendant) and self:parentIsNotHidden(descendant) then
+			self:toggleVisibility(0, descendant)
 		end
 		--There could be multiple removals at once. Use the selection to check.
 		--The first returned is always the object with the connection.
