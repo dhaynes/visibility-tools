@@ -1,17 +1,25 @@
 local PhysicsService = game:GetService("PhysicsService")
 local Globals = require(script.Parent.Globals)
 
+local SELECTABLE_GROUP = "StudioSelectable"
+
 local CollisionGroupMgr = {}
 
-function CollisionGroupMgr:HiddenCollisionGroupExists()
-	return PhysicsService:IsCollisionGroupRegistered(Globals.HIDDEN)
+function CollisionGroupMgr:HasTooManyExistingGroups(): boolean
+	local neededGroups = 0
+	if not PhysicsService:IsCollisionGroupRegistered(Globals.HIDDEN) then
+		neededGroups += 1
+	end
+	if not PhysicsService:IsCollisionGroupRegistered(SELECTABLE_GROUP) then
+		neededGroups += 1
+	end
+	local existingGroups = #PhysicsService:GetRegisteredCollisionGroups()
+	local maxGroups = PhysicsService:GetMaxCollisionGroups()
+	return existingGroups + neededGroups > maxGroups
 end
 
 function CollisionGroupMgr:MaxCollisionGroupsReached()
-	if
-		#PhysicsService:GetRegisteredCollisionGroups() == PhysicsService:GetMaxCollisionGroups()
-		and not self:HiddenCollisionGroupExists()
-	then
+	if CollisionGroupMgr:HasTooManyExistingGroups() then
 		warn(
 			"VisibilityTools: Cannot hide object because you've reached the max allowable CollisionGroups (32). Remove a CollisionGroup to proceed"
 		)
@@ -22,10 +30,14 @@ function CollisionGroupMgr:MaxCollisionGroupsReached()
 end
 
 function CollisionGroupMgr:CreateHiddenCollisionGroup()
-	if not self:HiddenCollisionGroupExists() then
-		PhysicsService:RegisterCollisionGroup(Globals.HIDDEN)
-		PhysicsService:CollisionGroupSetCollidable("Default", Globals.HIDDEN, false)
+	if not PhysicsService:IsCollisionGroupRegistered(SELECTABLE_GROUP) then
+		PhysicsService:RegisterCollisionGroup(SELECTABLE_GROUP)
 	end
+	if not PhysicsService:IsCollisionGroupRegistered(Globals.HIDDEN) then
+		PhysicsService:RegisterCollisionGroup(Globals.HIDDEN)
+	end
+	PhysicsService:CollisionGroupSetCollidable("Default", Globals.HIDDEN, false)
+	PhysicsService:CollisionGroupSetCollidable(SELECTABLE_GROUP, Globals.HIDDEN, false)
 end
 
 function CollisionGroupMgr:AddToHiddenCollisionGroup(obj)
@@ -48,7 +60,7 @@ function CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
 		return
 	end
 
-	if self:HiddenCollisionGroupExists() then
+	if PhysicsService:IsCollisionGroupRegistered(Globals.HIDDEN) then
 		local containsPart = (obj.CollisionGroup == Globals.HIDDEN)
 		if containsPart then
 			local attribute = obj:GetAttribute(Globals.COLLISION_GROUP)
@@ -61,7 +73,7 @@ function CollisionGroupMgr:RemoveFromHiddenCollisionGroup(obj)
 	end
 end
 function CollisionGroupMgr:RemoveHiddenCollisionGroup()
-	if self:HiddenCollisionGroupExists() then
+	if PhysicsService:IsCollisionGroupRegistered(Globals.HIDDEN) then
 		PhysicsService:UnregisterCollisionGroup(Globals.HIDDEN)
 	end
 end
