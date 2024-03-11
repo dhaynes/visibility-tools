@@ -63,8 +63,14 @@ function Main:parentIsNotHidden(obj, ignore)
 		elseif parent == game.Workspace then
 			return true
 		else
-			--TODO: Make sure that we check if this object is a child of the workspace. You shouldn't be able to hide anything outside of workspace
-			parent = parent.Parent
+			if parent.Parent then
+				parent = parent.Parent
+				if parent.Parent == game and parent ~= game.Workspace then
+					return false
+				end
+			else
+				return false
+			end
 		end
 	end
 end
